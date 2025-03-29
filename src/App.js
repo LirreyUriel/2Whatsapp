@@ -352,7 +352,13 @@ const WhatsAppAnalyzer = () => {
     }
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#EA4335', '#34A853', '#FBBC05', '#4285F4'];
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      scrollToBottom();
+    }
+  }, [activeTab, filteredChatData]);
+
+  const COLORS = ['#25D366', '#128C7E', '#075E54', '#34B7F1', '#FF5252', '#448AFF', '#7C4DFF', '#FFD740'];
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -467,19 +473,46 @@ const WhatsAppAnalyzer = () => {
       
         {activeTab === 'chat' && fileUploaded && (
           <div className="flex flex-col h-full">
+            {/* WhatsApp Header */}
+            <div className="bg-gray-200 p-2">
+              <div className="flex items-center">
+                {chatData.length > 0 && (
+                  <>
+                    <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                      WA
+                    </div>
+                    <div>
+                      <div className="font-bold">
+                        {chatData.length > 0 ? 
+                          `${_.uniq(chatData.map(msg => msg.sender)).join(', ')}` : 
+                          'WhatsApp Chat'
+                        }
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {chatData.length} messages, {_.uniq(chatData.map(msg => msg.sender)).length} participants
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
             {/* Search Bar */}
-            <div className="p-4 bg-white border-b sticky top-0 z-10">
+            <div className="bg-gray-100 p-2">
               <input
                 type="text"
                 placeholder="Search in chat..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full p-2 border rounded-lg"
               />
             </div>
             
             {/* Chat Messages */}
-            <div className="flex-1 p-4 bg-gray-100 overflow-auto">
+            <div className="flex-1 p-2 overflow-auto" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 16c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zm33.414-6l5.95-5.95L45.95.636 40 6.586 34.05.636 32.636 2.05 38.586 8l-5.95 5.95 1.414 1.414L40 9.414l5.95 5.95 1.414-1.414L41.414 8zM40 48c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zM9.414 40l5.95-5.95-1.414-1.414L8 38.586l-5.95-5.95L.636 34.05 6.586 40l-5.95 5.95 1.414 1.414L8 41.414l5.95 5.95 1.414-1.414L9.414 40z' fill='%23dddad3' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+              backgroundColor: "#e5ddd5"
+            }}>
               {Object.keys(groupedByDate).length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-gray-500">No messages found</p>
@@ -487,10 +520,10 @@ const WhatsAppAnalyzer = () => {
               ) : (
                 <div className="max-w-3xl mx-auto">
                   {Object.entries(groupedByDate).map(([date, messages]) => (
-                    <div key={date} className="mb-4">
+                    <div key={date}>
                       {/* Date Divider */}
-                      <div className="flex justify-center my-4">
-                        <div className="bg-white rounded-lg px-4 py-2 shadow text-sm text-gray-600">
+                      <div className="flex justify-center my-3">
+                        <div className="bg-gray-200 text-gray-600 text-xs font-medium rounded-lg px-3 py-1 shadow-sm">
                           {date}
                         </div>
                       </div>
@@ -498,23 +531,40 @@ const WhatsAppAnalyzer = () => {
                       {/* Messages for this date */}
                       {messages.map((msg, idx) => {
                         // Get the first sender from the chat to align messages
-                        const firstSender = chatData.length > 0 ? chatData[0].sender : '';
-                        const isSentByMe = msg.sender !== firstSender;
+                        const userIsSender = msg.sender === chatData[0]?.sender;
                         
                         return (
                           <div 
                             key={`${date}-${idx}`} 
-                            className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} mb-2`}
+                            className={`flex ${userIsSender ? 'justify-end' : 'justify-start'} mb-1`}
                           >
                             <div 
-                              className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 shadow ${
-                                isSentByMe ? 'bg-green-500 text-white' : 'bg-white text-black'
+                              className={`relative max-w-xs md:max-w-sm rounded-lg py-2 px-3 ${
+                                userIsSender 
+                                  ? 'bg-[#dcf8c6]' 
+                                  : 'bg-white'
                               }`}
                             >
-                              <div className="font-bold text-sm">{msg.sender}</div>
-                              <div className="whitespace-pre-wrap">{msg.message}</div>
-                              <div className="text-xs text-right mt-1 opacity-70">
-                                {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
+                              {!userIsSender && (
+                                <div className="font-bold text-xs" style={{color: '#075e54'}}>
+                                  {msg.sender}
+                                </div>
+                              )}
+                              
+                              <div className="text-sm break-words">
+                                {msg.message}
+                              </div>
+                              
+                              <div className="text-right mt-1">
+                                <span className="text-[10px] text-gray-500">
+                                  {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
+                                </span>
+                                
+                                {userIsSender && (
+                                  <span className="ml-1 text-gray-500">
+                                    ✓✓
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -588,7 +638,7 @@ const WhatsAppAnalyzer = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="avg" fill="#25D366" />
+                      <Bar dataKey="avg" fill="#25D366" name="Average Messages" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -605,7 +655,7 @@ const WhatsAppAnalyzer = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="count" fill="#128C7E" />
+                      <Bar dataKey="count" fill="#128C7E" name="Messages" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
