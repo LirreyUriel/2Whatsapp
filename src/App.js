@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart, Pie, Cell
@@ -395,6 +395,43 @@ const WhatsAppAnalyzer = () => {
     }
   };
 
+  // Get initials for avatar
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  // Get color for avatar based on name
+  const getAvatarColor = (name) => {
+    if (!name) return '#cccccc';
+    
+    // Simple hash function to generate consistent colors
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const colors = [
+      '#25D366', // WhatsApp green
+      '#128C7E', // WhatsApp teal
+      '#075E54', // WhatsApp dark green
+      '#34B7F1', // WhatsApp blue
+      '#FF5252', // Red
+      '#448AFF', // Blue
+      '#7C4DFF', // Purple
+      '#FFD740', // Amber
+      '#FF6E40', // Deep Orange
+      '#69F0AE', // Light Green
+    ];
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      scrollToBottom();
+    }
+  }, [activeTab, filteredChatData]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
@@ -481,30 +518,62 @@ const WhatsAppAnalyzer = () => {
       
         {activeTab === 'chat' && fileUploaded && (
           <div className="flex flex-col h-full">
-            {/* Search Bar */}
-            <div className="p-4 bg-white border-b sticky top-0 z-10">
-              <input
-                type="text"
-                placeholder="Search in chat..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+            {/* WhatsApp-style header */}
+            <div className="bg-green-600 text-white p-3 shadow-md flex items-center sticky top-0 z-10">
+              <div className="flex items-center">
+                {chatData.length > 0 && (
+                  <div className="flex items-center">
+                    {/* Chat image/avatar */}
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3 text-green-600 font-bold">
+                      <span>WA</span>
+                    </div>
+                    
+                    {/* Chat info */}
+                    <div>
+                      <h3 className="font-bold text-sm">{chatData.length > 0 ? 
+                        `${_.uniq(chatData.map(msg => msg.sender)).join(', ')}` : 
+                        'WhatsApp Chat'}
+                      </h3>
+                      <p className="text-xs opacity-90">
+                        {chatData.length} messages, {_.uniq(chatData.map(msg => msg.sender)).length} participants
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Search */}
+              <div className="ml-auto flex items-center">
+                <input
+                  type="text"
+                  placeholder="Search in chat..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="p-2 rounded-lg text-black text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-white"
+                />
+              </div>
             </div>
             
-            {/* Chat Messages */}
-            <div className="flex-1 p-4 bg-gray-100 overflow-auto">
+            {/* WhatsApp-style chat background */}
+            <div className="flex-1 bg-[#e5ddd5] bg-opacity-80 overflow-auto" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d1cbbd' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+            }}>
               {Object.keys(groupedByDate).length === 0 ? (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">No messages found</p>
+                  <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p className="text-gray-500">No messages found</p>
+                  </div>
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-2xl mx-auto py-6 px-4">
                   {Object.entries(groupedByDate).map(([date, messages]) => (
-                    <div key={date} className="mb-4">
+                    <div key={date} className="mb-8">
                       {/* Date Divider */}
                       <div className="flex justify-center my-4">
-                        <div className="bg-white rounded-lg px-4 py-2 shadow text-sm text-gray-600">
+                        <div className="bg-gray-200 rounded-lg px-4 py-1 shadow-sm text-xs text-gray-600 font-medium">
                           {date}
                         </div>
                       </div>
@@ -512,23 +581,77 @@ const WhatsAppAnalyzer = () => {
                       {/* Messages for this date */}
                       {messages.map((msg, idx) => {
                         // Get the first sender from the chat to align messages
-                        const firstSender = chatData.length > 0 ? chatData[0].sender : '';
+                        const firstSender = chatData[0]?.sender;
                         const isSentByMe = msg.sender !== firstSender;
+                        
+                        // Check if different sender than previous message
+                        const isNewSender = idx === 0 || messages[idx - 1].sender !== msg.sender;
+                        
+                        // Check if more than 2 minutes from previous message
+                        const isTimeGap = idx === 0 || 
+                          (new Date(parseDate(msg.date, msg.time)) - 
+                           new Date(parseDate(messages[idx - 1].date, messages[idx - 1].time))) > 2 * 60 * 1000;
+                        
+                        // Show name for first message in a sequence
+                        const showName = isNewSender || isTimeGap;
                         
                         return (
                           <div 
                             key={`${date}-${idx}`} 
-                            className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} mb-2`}
+                            className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'} mb-1`}
                           >
-                            <div 
-                              className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 shadow ${
-                                isSentByMe ? 'bg-green-500 text-white' : 'bg-white text-black'
-                              }`}
-                            >
-                              <div className="font-bold text-sm">{msg.sender}</div>
-                              <div className="whitespace-pre-wrap">{msg.message}</div>
-                              <div className="text-xs text-right mt-1 opacity-70">
-                                {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
+                            <div className={`flex ${!isSentByMe && 'flex-row-reverse'}`}>
+                              {/* Avatar - show only for first message in a sequence */}
+                              {(showName && !isSentByMe) && (
+                                <div className="flex items-start mt-2 mr-2">
+                                  <div 
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                    style={{backgroundColor: getAvatarColor(msg.sender)}}
+                                  >
+                                    {getInitials(msg.sender)}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div 
+                                className={`max-w-xs relative rounded-lg px-3 py-2 shadow ${
+                                  isSentByMe 
+                                    ? 'bg-[#dcf8c6] ml-6' 
+                                    : 'bg-white mr-6'
+                                }`}
+                              >
+                                {/* Message tail */}
+                                <div 
+                                  className={`absolute top-0 w-3 h-3 ${
+                                    isSentByMe 
+                                      ? 'bg-[#dcf8c6] -left-1 transform rotate-45' 
+                                      : 'bg-white -right-1 transform rotate-45'
+                                  }`}
+                                  style={{display: showName ? 'block' : 'none'}}
+                                ></div>
+                                
+                                {/* Sender name */}
+                                {showName && !isSentByMe && (
+                                  <div className="font-bold text-xs" style={{color: getAvatarColor(msg.sender)}}>
+                                    {msg.sender}
+                                  </div>
+                                )}
+                                
+                                {/* Message content */}
+                                <div className="text-sm whitespace-pre-wrap break-words">
+                                  {msg.message}
+                                </div>
+                                
+                                {/* Message time */}
+                                <div className="text-[10px] text-right mt-1 text-gray-500 flex items-center justify-end">
+                                  {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
+                                  {isSentByMe && (
+                                    <svg className="w-3 h-3 ml-1 text-gray-500" viewBox="0 0 16 16" fill="currentColor">
+                                      <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992a.252.252 0 0 1 .02-.022z" />
+                                      <path d="M12.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L6.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 2.973-3.712z" />
+                                    </svg>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
