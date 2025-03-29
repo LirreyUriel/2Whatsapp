@@ -18,6 +18,7 @@ const WhatsAppAnalyzer = () => {
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // File upload handler
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -102,7 +103,6 @@ const WhatsAppAnalyzer = () => {
     if (dateParts.length !== 3) return new Date();
     
     // Handle both DD/MM/YYYY and MM/DD/YYYY formats
-    // This is a simple heuristic - for a production app, more robust date parsing would be needed
     let day, month, year;
     
     // Try to determine which format is used
@@ -136,6 +136,7 @@ const WhatsAppAnalyzer = () => {
     return new Date(year, month, day, hours, minutes);
   };
 
+  // Calculate statistics from chat data
   const calculateStats = (data) => {
     if (!data || data.length === 0) return;
     
@@ -222,10 +223,9 @@ const WhatsAppAnalyzer = () => {
       messagesByMonth[monthKey]++;
     });
     
-    // Timeline data (by day) for bar chart
+    // Timeline data (by day)
     const dailyTimelineData = Object.entries(messagesByDate)
       .map(([date, count]) => {
-        // Try to create a proper date object for sorting
         const dateParts = date.split('/');
         if (dateParts.length === 3) {
           const day = parseInt(dateParts[0], 10);
@@ -233,21 +233,21 @@ const WhatsAppAnalyzer = () => {
           const year = parseInt(dateParts[2], 10);
           return { date, count, sortDate: new Date(year, month, day) };
         }
-        return { date, count, sortDate: new Date(0) }; // Fallback for invalid dates
+        return { date, count, sortDate: new Date(0) };
       })
       .sort((a, b) => a.sortDate - b.sortDate)
-      .slice(-30); // Get only the last 30 days for readability
+      .slice(-30); // Last 30 days
     
-    // Calculate most common words
+    // Calculate word frequencies
     const wordCounts = {};
     data.forEach(row => {
       if (!row.message) return;
       
       const words = row.message
         .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s]/gu, '') // Remove non-alphanumeric characters but keep Unicode letters
+        .replace(/[^\p{L}\p{N}\s]/gu, '')
         .split(/\s+/)
-        .filter(word => word.length > 2); // Filter out short words
+        .filter(word => word.length > 2);
       
       words.forEach(word => {
         if (!wordCounts[word]) {
@@ -263,7 +263,7 @@ const WhatsAppAnalyzer = () => {
       .slice(0, 30)
       .map(([word, count]) => ({ word, count }));
     
-    // Calculate most common phrases (2-3 words)
+    // Calculate most common phrases
     const phraseCounts = {};
     data.forEach(row => {
       if (!row.message) return;
@@ -293,9 +293,9 @@ const WhatsAppAnalyzer = () => {
       }
     });
     
-    // Get top 30 phrases with at least 3 occurrences
+    // Get top 30 phrases
     const topPhrases = Object.entries(phraseCounts)
-      .filter(([phrase, count]) => count >= 3) // Filter out phrases that occur less than 3 times
+      .filter(([phrase, count]) => count >= 3)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 30)
       .map(([phrase, count]) => ({ phrase, count }));
@@ -320,7 +320,7 @@ const WhatsAppAnalyzer = () => {
       words: wordCountBySender[sender]
     }));
     
-    // Set all stats
+    // Set all statistics
     setStats({
       timelineData,
       dailyTimelineData,
@@ -372,12 +372,10 @@ const WhatsAppAnalyzer = () => {
         if (e.dataTransfer.items[i].kind === 'file') {
           const file = e.dataTransfer.items[i].getAsFile();
           if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-            // Manually set the file in the input element to trigger the change event
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             fileInputRef.current.files = dataTransfer.files;
             
-            // Trigger the file upload handler
             handleFileUpload({ target: { files: [file] } });
             break;
           } else {
@@ -388,83 +386,298 @@ const WhatsAppAnalyzer = () => {
     }
   };
 
+  // Custom styles for WhatsApp-like UI
+  const styles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      fontFamily: 'Helvetica, Arial, sans-serif',
+    },
+    header: {
+      backgroundColor: '#075E54',
+      color: 'white',
+      padding: '15px',
+      textAlign: 'center',
+    },
+    tabs: {
+      display: 'flex',
+      backgroundColor: 'white',
+      borderBottom: '1px solid #ddd',
+    },
+    tab: {
+      padding: '10px 20px',
+      cursor: 'pointer',
+      borderBottom: '2px solid transparent',
+      fontWeight: 500,
+    },
+    activeTab: {
+      color: '#25D366',
+      borderBottom: '2px solid #25D366',
+    },
+    disabledTab: {
+      opacity: 0.5,
+      cursor: 'not-allowed',
+    },
+    contentArea: {
+      flex: 1,
+      overflow: 'auto',
+    },
+    uploadArea: {
+      padding: '30px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+    },
+    dropZone: {
+      border: '3px dashed #ccc',
+      borderRadius: '10px',
+      padding: '40px',
+      width: '100%',
+      maxWidth: '500px',
+      textAlign: 'center',
+    },
+    uploadIcon: {
+      fontSize: '48px',
+      color: '#ccc',
+      marginBottom: '20px',
+    },
+    uploadButton: {
+      backgroundColor: '#25D366',
+      color: 'white',
+      border: 'none',
+      padding: '10px 20px',
+      borderRadius: '5px',
+      cursor: 'pointer',
+      fontWeight: 'bold',
+      marginTop: '20px',
+    },
+    error: {
+      color: 'red',
+      marginTop: '15px',
+      padding: '10px',
+      backgroundColor: '#ffeeee',
+      borderRadius: '5px',
+    },
+    loading: {
+      marginTop: '20px',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    chatHeader: {
+      backgroundColor: '#EDEDED',
+      padding: '10px',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    chatAvatar: {
+      width: '40px',
+      height: '40px',
+      backgroundColor: '#DDD',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: '15px',
+      fontWeight: 'bold',
+    },
+    chatInfo: {
+      flex: 1,
+    },
+    searchBar: {
+      backgroundColor: '#F6F6F6',
+      padding: '10px',
+    },
+    searchInput: {
+      width: '100%',
+      padding: '8px',
+      borderRadius: '20px',
+      border: '1px solid #ddd',
+    },
+    chatBackground: {
+      backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AMIFCg3kA2L3AAAAhNJREFUeNrtnE1rGlEUhh+nFaShIAiBdFMIXbfQXfMH8mM7m+6qTRZFIgEhIAQCQcjELLpTSUCaNJvJKpM6E+fzLnTPgy5EhXvPfTzM1XEEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOzS8NnA9K1RZJ8pUsrHuXBs2vgEQqcQsVYqRazjCOI6VeW6qmIY8aCIEFIhfkRr5b6qXo35pIyU8oNX5PZp3bNx3hSSqCoiHu2MlPJ0JepXRMKoDzvAK3KK3KeGHQcefCIeQ5dDFNKJXLK2mm1ycJlzhPQGSbzIJRNBh6aRvKM8iLtODPhtP75EwuMrJD0y0TUhpSBiKcyQlYZBX/Ah8iCS3iNkW9dF2DQM+n58ie1ySO81k10I2WOciBrIQIQIISJECBEihAgRQoQIIUKEECFCiBAiRMihhVjZ+VWECCFChBAhQogQIvS+qvLpF5tSNyGlvN0ckxukbVy6QqzTm9/HdnL6lXV5OdVWObBMFjsYI2Q9TFuX8e7m90NdTmLPvO99ktpTl3O5bMI4YyHtIGBZhI7U5Tyf/nZ7eRyH/LNl8TxuA5dXrxQ6Csv5aMeP2zIUYqPbX5Ps4Jm1+E13vLMsJ+NVOx0h7eCaxXx6JGKfhSHLAA8kl+1A5FjcHjv45MHXPy0LAgYiKyGEmQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+Jf8A2LM+/L2GftRAAAAAElFTkSuQmCC")',
+      backgroundColor: '#E5DDD5',
+      flex: 1,
+      padding: '20px',
+      overflow: 'auto',
+    },
+    dateLabel: {
+      display: 'flex',
+      justifyContent: 'center',
+      margin: '15px 0',
+    },
+    datePill: {
+      backgroundColor: '#E1F2FB',
+      color: '#4A4A4A',
+      padding: '5px 12px',
+      borderRadius: '8px',
+      fontSize: '12px',
+      boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+    },
+    messageRow: {
+      display: 'flex',
+      marginBottom: '10px',
+    },
+    messageRowOutgoing: {
+      justifyContent: 'flex-end',
+    },
+    messageRowIncoming: {
+      justifyContent: 'flex-start',
+    },
+    messageBubble: {
+      maxWidth: '65%',
+      padding: '8px 12px',
+      borderRadius: '7.5px',
+      position: 'relative',
+      boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+    },
+    outgoingBubble: {
+      backgroundColor: '#DCF8C6',
+    },
+    incomingBubble: {
+      backgroundColor: '#FFFFFF',
+    },
+    senderName: {
+      fontWeight: 'bold',
+      fontSize: '13px',
+      marginBottom: '4px',
+      color: '#075E54',
+    },
+    messageText: {
+      fontSize: '14px',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+    },
+    messageTime: {
+      fontSize: '11px',
+      color: '#999',
+      textAlign: 'right',
+      marginTop: '2px',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+    },
+    readTicks: {
+      marginLeft: '4px',
+    },
+    statsContainer: {
+      padding: '20px',
+      maxWidth: '1200px',
+      margin: '0 auto',
+    },
+    statCard: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      padding: '20px',
+      boxShadow: '0 2px 4px rgba(0,0,0,.1)',
+      marginBottom: '30px',
+    },
+    statTitle: {
+      fontSize: '20px',
+      fontWeight: 'bold',
+      marginBottom: '15px',
+      color: '#075E54',
+    },
+    chartContainer: {
+      height: '300px',
+      width: '100%',
+    },
+    noDataContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      textAlign: 'center',
+    },
+    noDataIcon: {
+      fontSize: '48px',
+      color: '#ccc',
+      marginBottom: '20px',
+    }
+  };
+
+  // Combine styles for conditional rendering
+  const getTabStyle = (tabName) => {
+    if (activeTab === tabName) {
+      return { ...styles.tab, ...styles.activeTab };
+    }
+    if ((tabName === 'chat' || tabName === 'statistics') && !fileUploaded) {
+      return { ...styles.tab, ...styles.disabledTab };
+    }
+    return styles.tab;
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div style={styles.container}>
       {/* Header */}
-      <div className="bg-green-600 text-white p-4">
-        <h1 className="text-2xl font-bold">WhatsApp Chat Analyzer</h1>
+      <div style={styles.header}>
+        <h1>WhatsApp Chat Analyzer</h1>
       </div>
       
       {/* Tab Navigation */}
-      <div className="flex bg-white border-b">
-        <button 
+      <div style={styles.tabs}>
+        <div 
+          style={getTabStyle('upload')}
           onClick={() => setActiveTab('upload')}
-          className={`px-6 py-3 font-medium ${activeTab === 'upload' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600'}`}
         >
           Upload
-        </button>
-        <button 
-          onClick={() => setActiveTab('chat')}
-          className={`px-6 py-3 font-medium ${activeTab === 'chat' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600'} ${!fileUploaded ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!fileUploaded}
+        </div>
+        <div 
+          style={getTabStyle('chat')}
+          onClick={() => fileUploaded ? setActiveTab('chat') : null}
         >
           Chat
-        </button>
-        <button 
-          onClick={() => setActiveTab('statistics')}
-          className={`px-6 py-3 font-medium ${activeTab === 'statistics' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600'} ${!fileUploaded ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!fileUploaded}
+        </div>
+        <div 
+          style={getTabStyle('statistics')}
+          onClick={() => fileUploaded ? setActiveTab('statistics') : null}
         >
           Statistics
-        </button>
+        </div>
       </div>
       
-      <div className="flex-1 overflow-auto">
+      <div style={styles.contentArea}>
         {activeTab === 'upload' && (
-          <div className="p-8 flex flex-col items-center justify-center h-full">
+          <div style={styles.uploadArea}>
             <div 
-              className="border-4 border-dashed border-gray-300 rounded-lg p-12 w-full max-w-2xl text-center"
+              style={styles.dropZone}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
+              <div style={styles.uploadIcon}>↑</div>
               
-              <h2 className="text-xl font-medium mb-4">Upload WhatsApp Chat CSV</h2>
-              <p className="text-gray-500 mb-6">Drag and drop your WhatsApp chat CSV file here, or click to select a file</p>
+              <h2>Upload WhatsApp Chat CSV</h2>
+              <p>Drag and drop your WhatsApp chat CSV file here, or click to select a file</p>
               
               <input
                 type="file"
                 accept=".csv"
                 onChange={handleFileUpload}
                 ref={fileInputRef}
-                className="hidden"
+                style={{ display: 'none' }}
                 id="file-upload"
               />
               
-              <label htmlFor="file-upload" className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg cursor-pointer">
+              <label htmlFor="file-upload" style={styles.uploadButton}>
                 Select CSV File
               </label>
               
-              <div className="mt-4 text-sm">
+              <div style={{ marginTop: '15px', fontSize: '14px' }}>
                 <p>Your file should have these columns:</p>
-                <p className="font-mono text-gray-600 mt-1">datetime, date, time, hour, weekday, sender, message</p>
+                <p style={{ fontFamily: 'monospace', color: '#666' }}>datetime, date, time, hour, weekday, sender, message</p>
               </div>
               
               {error && (
-                <div className="mt-4 text-red-600 p-2 bg-red-50 rounded">
+                <div style={styles.error}>
                   {error}
                 </div>
               )}
               
               {loading && (
-                <div className="mt-6 flex items-center justify-center">
-                  <svg className="animate-spin h-6 w-6 text-green-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Processing...</span>
+                <div style={styles.loading}>
+                  <span style={{ marginRight: '10px' }}>Processing...</span>
                 </div>
               )}
             </div>
@@ -472,98 +685,87 @@ const WhatsAppAnalyzer = () => {
         )}
       
         {activeTab === 'chat' && fileUploaded && (
-          <div className="flex flex-col h-full">
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* WhatsApp Header */}
-            <div className="bg-gray-200 p-2">
-              <div className="flex items-center">
-                {chatData.length > 0 && (
-                  <>
-                    <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                      WA
-                    </div>
-                    <div>
-                      <div className="font-bold">
-                        {chatData.length > 0 ? 
-                          `${_.uniq(chatData.map(msg => msg.sender)).join(', ')}` : 
-                          'WhatsApp Chat'
-                        }
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {chatData.length} messages, {_.uniq(chatData.map(msg => msg.sender)).length} participants
-                      </div>
-                    </div>
-                  </>
-                )}
+            <div style={styles.chatHeader}>
+              <div style={styles.chatAvatar}>
+                WA
+              </div>
+              <div style={styles.chatInfo}>
+                <div style={{ fontWeight: 'bold' }}>
+                  {chatData.length > 0 ? 
+                    `${_.uniq(chatData.map(msg => msg.sender)).join(', ')}` : 
+                    'WhatsApp Chat'
+                  }
+                </div>
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {chatData.length} messages, {_.uniq(chatData.map(msg => msg.sender)).length} participants
+                </div>
               </div>
             </div>
             
             {/* Search Bar */}
-            <div className="bg-gray-100 p-2">
+            <div style={styles.searchBar}>
               <input
                 type="text"
                 placeholder="Search in chat..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 border rounded-lg"
+                style={styles.searchInput}
               />
             </div>
             
             {/* Chat Messages */}
-            <div className="flex-1 p-2 overflow-auto" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 16c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zm33.414-6l5.95-5.95L45.95.636 40 6.586 34.05.636 32.636 2.05 38.586 8l-5.95 5.95 1.414 1.414L40 9.414l5.95 5.95 1.414-1.414L41.414 8zM40 48c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zM9.414 40l5.95-5.95-1.414-1.414L8 38.586l-5.95-5.95L.636 34.05 6.586 40l-5.95 5.95 1.414 1.414L8 41.414l5.95 5.95 1.414-1.414L9.414 40z' fill='%23dddad3' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-              backgroundColor: "#e5ddd5"
-            }}>
+            <div style={styles.chatBackground}>
               {Object.keys(groupedByDate).length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">No messages found</p>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <p>No messages found</p>
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto">
+                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                   {Object.entries(groupedByDate).map(([date, messages]) => (
                     <div key={date}>
                       {/* Date Divider */}
-                      <div className="flex justify-center my-3">
-                        <div className="bg-gray-200 text-gray-600 text-xs font-medium rounded-lg px-3 py-1 shadow-sm">
+                      <div style={styles.dateLabel}>
+                        <div style={styles.datePill}>
                           {date}
                         </div>
                       </div>
                       
                       {/* Messages for this date */}
                       {messages.map((msg, idx) => {
-                        // Get the first sender from the chat to align messages
+                        // Get the first sender to determine message direction
                         const userIsSender = msg.sender === chatData[0]?.sender;
                         
                         return (
                           <div 
                             key={`${date}-${idx}`} 
-                            className={`flex ${userIsSender ? 'justify-end' : 'justify-start'} mb-1`}
+                            style={{
+                              ...styles.messageRow,
+                              ...(userIsSender ? styles.messageRowOutgoing : styles.messageRowIncoming)
+                            }}
                           >
                             <div 
-                              className={`relative max-w-xs md:max-w-sm rounded-lg py-2 px-3 ${
-                                userIsSender 
-                                  ? 'bg-[#dcf8c6]' 
-                                  : 'bg-white'
-                              }`}
+                              style={{
+                                ...styles.messageBubble,
+                                ...(userIsSender ? styles.outgoingBubble : styles.incomingBubble)
+                              }}
                             >
                               {!userIsSender && (
-                                <div className="font-bold text-xs" style={{color: '#075e54'}}>
+                                <div style={styles.senderName}>
                                   {msg.sender}
                                 </div>
                               )}
                               
-                              <div className="text-sm break-words">
+                              <div style={styles.messageText}>
                                 {msg.message}
                               </div>
                               
-                              <div className="text-right mt-1">
-                                <span className="text-[10px] text-gray-500">
-                                  {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
-                                </span>
+                              <div style={styles.messageTime}>
+                                {msg.time ? msg.time.split(':').slice(0, 2).join(':') : ''}
                                 
                                 {userIsSender && (
-                                  <span className="ml-1 text-gray-500">
-                                    ✓✓
-                                  </span>
+                                  <span style={styles.readTicks}>✓✓</span>
                                 )}
                               </div>
                             </div>
@@ -580,225 +782,231 @@ const WhatsAppAnalyzer = () => {
         )}
         
         {activeTab === 'statistics' && fileUploaded && stats && (
-          <div className="p-6">
-            <div className="max-w-6xl mx-auto space-y-8">
-              <h2 className="text-2xl font-bold mb-6">Chat Statistics</h2>
-              
-              {/* Most Active Day */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Most Active Day</h3>
-                <p className="text-lg">
-                  <span className="font-bold">{stats.mostActiveDay.date}</span> with{' '}
-                  <span className="font-bold text-green-600">{stats.mostActiveDay.count}</span> messages
-                </p>
+          <div style={styles.statsContainer}>
+            <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>Chat Statistics</h2>
+            
+            {/* Most Active Day */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Most Active Day</div>
+              <p style={{ fontSize: '18px' }}>
+                <span style={{ fontWeight: 'bold' }}>{stats.mostActiveDay.date}</span> with{' '}
+                <span style={{ fontWeight: 'bold', color: '#25D366' }}>{stats.mostActiveDay.count}</span> messages
+              </p>
+            </div>
+            
+            {/* Monthly Timeline Chart */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Monthly Message Timeline</div>
+              <div style={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.timelineData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#25D366" name="Messages" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              
-              {/* Monthly Timeline Chart */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Monthly Message Timeline</h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.timelineData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#25D366" name="Messages" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            </div>
+            
+            {/* Daily Timeline Chart */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Daily Message Timeline (Last 30 Days)</div>
+              <div style={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.dailyTimelineData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#34B7F1" name="Messages" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              
-              {/* Daily Timeline Chart */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Daily Message Timeline (Last 30 Days)</h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.dailyTimelineData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#34B7F1" name="Messages" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            </div>
+            
+            {/* Average Messages by Weekday */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Average Messages by Day of Week</div>
+              <div style={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.weekdayData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="avg" fill="#25D366" name="Average Messages" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              
-              {/* Average Messages by Weekday */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Average Messages by Day of Week</h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.weekdayData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="avg" fill="#25D366" name="Average Messages" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            </div>
+            
+            {/* Messages by Hour */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Messages by Hour of Day</div>
+              <div style={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.hourData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hour" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#128C7E" name="Messages" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              
-              {/* Messages by Hour */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Messages by Hour of Day</h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.hourData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="hour" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#128C7E" name="Messages" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              
-              {/* Who Sends More Messages */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Who Sends More Messages?</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-lg font-medium mb-2">Total Messages</h4>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={stats.senderData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={true}
-                            label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="messages"
-                          >
-                            {stats.senderData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="mt-4">
-                      {stats.senderData.map((sender, index) => (
-                        <div key={sender.name} className="flex items-center mb-2">
-                          <div className="w-4 h-4 mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                          <span>{sender.name}: {sender.messages} messages</span>
-                        </div>
-                      ))}
-                    </div>
+            </div>
+            
+            {/* Who Sends More Messages */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Who Sends More Messages?</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div>
+                  <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>Total Messages</h4>
+                  <div style={{ height: '300px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats.senderData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="messages"
+                        >
+                          {stats.senderData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  
-                  <div>
-                    <h4 className="text-lg font-medium mb-2">Total Words</h4>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={stats.senderData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={true}
-                            label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="words"
-                          >
-                            {stats.senderData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="mt-4">
-                      {stats.senderData.map((sender, index) => (
-                        <div key={sender.name} className="flex items-center mb-2">
-                          <div className="w-4 h-4 mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                          <span>{sender.name}: {sender.words} words</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div style={{ marginTop: '20px' }}>
+                    {stats.senderData.map((sender, index) => (
+                      <div key={sender.name} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ 
+                          width: '12px', 
+                          height: '12px', 
+                          backgroundColor: COLORS[index % COLORS.length],
+                          marginRight: '8px' 
+                        }}></div>
+                        <span>{sender.name}: {sender.messages} messages</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-              
-              {/* Most Common Words */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Most Common Words</h3>
-                <div className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={stats.topWords} 
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis 
-                        type="category" 
-                        dataKey="word" 
-                        tick={{ fontSize: 12 }}
-                        width={80}
-                      />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#075E54" name="Occurrences" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                
+                <div>
+                  <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>Total Words</h4>
+                  <div style={{ height: '300px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats.senderData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="words"
+                        >
+                          {stats.senderData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{ marginTop: '20px' }}>
+                    {stats.senderData.map((sender, index) => (
+                      <div key={sender.name} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ 
+                          width: '12px', 
+                          height: '12px', 
+                          backgroundColor: COLORS[index % COLORS.length],
+                          marginRight: '8px' 
+                        }}></div>
+                        <span>{sender.name}: {sender.words} words</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              
-              {/* Most Common Phrases */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Most Common Phrases</h3>
-                <div className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={stats.topPhrases} 
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis 
-                        type="category" 
-                        dataKey="phrase" 
-                        tick={{ fontSize: 12 }}
-                        width={120}
-                      />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#128C7E" name="Occurrences" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            </div>
+            
+            {/* Most Common Words */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Most Common Words</div>
+              <div style={{ height: '400px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={stats.topWords} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      type="category" 
+                      dataKey="word" 
+                      tick={{ fontSize: 12 }}
+                      width={80}
+                    />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#075E54" name="Occurrences" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            {/* Most Common Phrases */}
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>Most Common Phrases</div>
+              <div style={{ height: '400px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={stats.topPhrases} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      type="category" 
+                      dataKey="phrase" 
+                      tick={{ fontSize: 12 }}
+                      width={120}
+                    />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#128C7E" name="Occurrences" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
         )}
         
         {!fileUploaded && (activeTab === 'chat' || activeTab === 'statistics') && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center p-8">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h2 className="text-xl font-medium mb-2">No Data Available</h2>
-              <p className="text-gray-500">Please upload a WhatsApp chat CSV file first.</p>
+          <div style={styles.noDataContainer}>
+            <div style={{ padding: '30px', textAlign: 'center' }}>
+              <div style={styles.noDataIcon}>⚠️</div>
+              <h2>No Data Available</h2>
+              <p style={{ color: '#666', marginBottom: '20px' }}>Please upload a WhatsApp chat CSV file first.</p>
               <button 
                 onClick={() => setActiveTab('upload')} 
-                className="mt-4 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
+                style={styles.uploadButton}
               >
                 Go to Upload
               </button>
